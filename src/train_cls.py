@@ -23,6 +23,7 @@ parser.add_argument('-bs', type=int, default=16, help='batch size')
 parser.add_argument('-nit', type=int, default=80000, help='Number of training iterations')
 
 # Initialization parameters
+parser.add_argument('--mean_value', help='A comma-separated list of floats specifying the per-channel values of the mean to subtract')
 parser.add_argument('--no-mean', action='store_true', help='Do not mean center')
 parser.add_argument('--clip', default='drop7', help='clip the network at this layer')
 parser.add_argument('--train-from', default=None, help='Train only layers after this layer')
@@ -58,7 +59,12 @@ model = load.ProtoDesc(args.prototxt)
 # Create the training net
 ns = NetSpec()
 mean_value = [104,117,123]
-if args.no_mean: mean_value = [0,0,0]
+if args.mean_value is not None:
+	mean_value = [float(x) for x in args.mean_value.split(',')]
+	assert len(mean_value) == 3
+if args.no_mean:
+	assert args.mean_value is None
+	mean_value = [0,0,0]
 ns.data, ns.cls = dataLayer(args.voc_dir, output_dir, batch_size=args.bs, transform_param=dict(crop_size=model.input_dim[-1], min_scale=args.min_scale, max_scale=args.max_scale, mean_value=mean_value, mirror=True, scale=args.scale), resize=args.resize)
 
 ns.fc8  = L.InnerProduct( model(data=ns.data, clip=args.clip), num_output=20, name='fc8_cls')
