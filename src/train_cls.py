@@ -56,8 +56,6 @@ import load
 
 model = load.ProtoDesc(args.prototxt)
 
-# Create the training net
-ns = NetSpec()
 mean_value = [104,117,123]
 if args.mean_value is not None:
 	mean_value = [float(x) for x in args.mean_value.split(',')]
@@ -65,46 +63,47 @@ if args.mean_value is not None:
 if args.no_mean:
 	assert args.mean_value is None
 	mean_value = [0,0,0]
-ns.data, ns.cls = dataLayer(args.voc_dir, output_dir, batch_size=args.bs, transform_param=dict(crop_size=model.input_dim[-1], min_scale=args.min_scale, max_scale=args.max_scale, mean_value=mean_value, mirror=True, scale=args.scale), resize=args.resize)
-
-ns.fc8  = L.InnerProduct( model(data=ns.data, clip=args.clip), num_output=20, name='fc8_cls')
-ns.loss = Py.SigmoidCrossEntropyLoss(ns.fc8, ns.cls, ignore_label=255, loss_weight=1)
-
-#ns.prnt = Py.Print(ns.cls)
-
-
-#setLR(listAllTops(ns.fc8), 1, 2)
-#setDecay(listAllTops(ns.fc8), 1, 1)
-
-# Set the learning rates
-all_tops = listAllTops(ns.fc8)
-train_t = args.train_from is None
-for t in all_tops:
-	if not train_t:
-		train_t = args.train_from == t.fn.params.get('name','')
-	if train_t:
-		setLR(t, 1, 2)
-		setDecay(t, 1, 1)
-	else:
-		setLR(t, 0, 0)
-		setDecay(t, 0, 0)
-if not train_t:
-	print("Something went wrong, not training any layers!")
 
 # Choose the GPU
 caffe.set_mode_gpu()
 if args.gpu is not None:
 	caffe.set_device(args.gpu)
 
-# Save the file
-prototxt = output_dir+'trainval.prototxt'
-f_out = open(prototxt, 'w')
-f_out.write(str(ns.to_proto()))
-f_out.close()
-
-
-# Run the solver
 if args.nit:
+	# Create the training net
+	ns = NetSpec()
+	ns.data, ns.cls = dataLayer(args.voc_dir, output_dir, batch_size=args.bs, transform_param=dict(crop_size=model.input_dim[-1], min_scale=args.min_scale, max_scale=args.max_scale, mean_value=mean_value, mirror=True, scale=args.scale), resize=args.resize)
+
+	ns.fc8  = L.InnerProduct( model(data=ns.data, clip=args.clip), num_output=20, name='fc8_cls')
+	ns.loss = Py.SigmoidCrossEntropyLoss(ns.fc8, ns.cls, ignore_label=255, loss_weight=1)
+
+	#ns.prnt = Py.Print(ns.cls)
+
+	#setLR(listAllTops(ns.fc8), 1, 2)
+	#setDecay(listAllTops(ns.fc8), 1, 1)
+
+	# Set the learning rates
+	all_tops = listAllTops(ns.fc8)
+	train_t = args.train_from is None
+	for t in all_tops:
+		if not train_t:
+			train_t = args.train_from == t.fn.params.get('name','')
+		if train_t:
+			setLR(t, 1, 2)
+			setDecay(t, 1, 1)
+		else:
+			setLR(t, 0, 0)
+			setDecay(t, 0, 0)
+	if not train_t:
+		print("Something went wrong, not training any layers!")
+
+	# Save the file
+	prototxt = output_dir+'trainval.prototxt'
+	f_out = open(prototxt, 'w')
+	f_out.write(str(ns.to_proto()))
+	f_out.close()
+
+	# Run the solver
 	from solver import Solver
 	# There should be no need to tune the solver parameters
 	s = Solver(prototxt, output_dir+'final.caffemodel', output_dir+'snap.caffemodel', solver=args.solver, base_lr=args.lr, weight_decay=1e-6, log_file=output_dir+'log.txt', clip_gradients=10, lr_policy="step", gamma=0.5, stepsize=10000)
