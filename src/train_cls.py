@@ -27,7 +27,7 @@ parser.add_argument('--mean_value', help='A comma-separated list of floats speci
 parser.add_argument('--no-mean', action='store_true', help='Do not mean center')
 parser.add_argument('--clip', default='drop7', help='clip the network at this layer')
 parser.add_argument('--train-from', default=None, help='Train only layers after this layer')
-parser.add_argument('--random-from', default='drop7', help='Initialize all layers after this layer randomly')
+parser.add_argument('--random-from', default=None, help='Initialize all layers after this layer randomly')
 parser.add_argument('--scale', type=float, default=1.0, help='Scale of the input data')
 parser.add_argument('--min-scale', type=float, default=0.5, help='Minimum scale transformation of image')
 parser.add_argument('--max-scale', type=float, default=2.0, help='Maximum scale transformation of image')
